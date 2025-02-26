@@ -10,13 +10,13 @@ import { AuthError } from 'next-auth';
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
  
 const FormSchema = z.object({
-  id: z.string(),
+  id: z.string().min(1, { message: 'Invalid invoice ID.' }),
   customerId: z.string({
     invalid_type_error: 'Please select a customer.',
   }),
-  amount: z.coerce.number().gt(0, { message: 'Please enter an amount greater than $0.' }),
-  status: z.enum(['pending', 'paid'], {invalid_type_error: 'Please select an invoice status.'}),
-  date: z.string(),
+  amount: z.coerce.number().min(0.01, { message: 'Amount must be greater than 0.' }),
+  status: z.enum(['pending', 'paid'], { invalid_type_error: 'Please select an invoice status.' }),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Invalid date format.' }),
 });
  
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
@@ -90,27 +90,30 @@ export async function updateInvoice(
  
   const { customerId, amount, status } = validatedFields.data;
   const amountInCents = amount * 100;
+  
+  // console.log("Updating invoice:", { id, customerId, amountInCents, status });
  
   try {
-    await sql`
-      UPDATE invoices
-      SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-      WHERE id = ${id}
-    `;
-  } catch (error) {
-    return { message: 'Database Error: Failed to Update Invoice.' };
-  }
- 
+  const result = await sql`
+  UPDATE invoices
+  SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+  WHERE id = ${id}
+  RETURNING *;
+`;
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
+} catch (error) {
+  return { message: 'Database Error: Failed to Update Invoice.' };
+}
 }
 
 export async function deleteInvoice(id: string) {
-  throw new Error('Failed to Delete Invoice');
- 
-  // Unreachable code block
-  await sql`DELETE FROM invoices WHERE id = ${id}`;
-  revalidatePath('/dashboard/invoices');
+  try {
+    await sql`DELETE FROM invoices WHERE id = ${id}`;
+    revalidatePath('/dashboard/invoices');
+  } catch (error) {
+    return { message: 'Database Error: Failed to Delete Invoice.' };
+  }
 }
 
 export async function authenticate(

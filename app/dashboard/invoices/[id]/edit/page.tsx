@@ -5,21 +5,28 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
  
 export const metadata: Metadata = {
-  title: 'Edit Invoices',
+  title: 'Edit Invoice',
 };
  
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const id = params.id;
-  const [invoice, customers] = await Promise.all([
-    fetchInvoiceById(id),
-    fetchCustomers(),
-  ]);
-  
+  let invoice, customers;
+
+  try {
+    [invoice, customers] = await Promise.all([
+      fetchInvoiceById(id),
+      fetchCustomers(),
+    ]);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    notFound();
+  }
+
   if (!invoice) {
     notFound();
   }
-  
+
   return (
     <main>
       <Breadcrumbs
@@ -27,7 +34,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           { label: 'Invoices', href: '/dashboard/invoices' },
           {
             label: 'Edit Invoice',
-            href: `/dashboard/invoices/${id}/edit`,
+            href: `/dashboard/invoices/${params.id}/edit`,
             active: true,
           },
         ]}
