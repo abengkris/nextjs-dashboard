@@ -16,18 +16,14 @@ export default function EditInvoiceForm({
   customers: CustomerField[];
 }) {
   const initialState: State = { message: null, errors: {} };
-  const updateInvoiceWithId = updateInvoice.bind(null, invoice.id);
-  const [state, formAction] = useActionState(updateInvoiceWithId, initialState);
-  const [errors, setErrors] = useState<State["errors"] | null>(null);
+  const [state, formAction] = useActionState(updateInvoice, initialState);
 
   return (
-    <form
-      action={async (formData) => {
-        const result = await formAction(formData);
-        setErrors(result?.errors || null);
-      }}
-    >
+    <form action={formAction}>
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
+        {/* Hidden Input for ID */}
+  <input type="hidden" name="id" value={invoice.id} />
+  
         {/* Customer Name */}
         <div className="mb-4">
           <label htmlFor="customer" className="mb-2 block text-sm font-medium">
@@ -51,7 +47,6 @@ export default function EditInvoiceForm({
             </select>
             <UserCircleIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
           </div>
-          {errors?.customerId && <p className="text-red-500 text-sm">{errors.customerId.join(", ")}</p>}
         </div>
 
         {/* Invoice Amount */}
@@ -71,7 +66,6 @@ export default function EditInvoiceForm({
             />
             <CurrencyDollarIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
           </div>
-          {errors?.amount && <p className="text-red-500 text-sm">{errors.amount.join(", ")}</p>}
         </div>
 
         {/* Invoice Status */}
@@ -113,7 +107,6 @@ export default function EditInvoiceForm({
               </div>
             </div>
           </div>
-          {errors?.status && <p className="text-red-500 text-sm">{errors.status.join(", ")}</p>}
         </fieldset>
       </div>
 
